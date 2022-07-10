@@ -1,11 +1,11 @@
 import argparse
-from youtube_uploader_selenium import YouTubeUploader
+from rutube_uploader_selenium import RuTubeUploader
 from typing import Optional
 
 
 def main(video_path: str, metadata_path: Optional[str] = None, thumbnail_path: Optional[str] = None):
-    uploader = YouTubeUploader(video_path, metadata_path, thumbnail_path)
-    was_video_uploaded, video_id = uploader.upload()
+    uploader = RuTubeUploader(video_path, metadata_path, thumbnail_path)
+    was_video_uploaded = uploader.upload()
     assert was_video_uploaded
 
 
