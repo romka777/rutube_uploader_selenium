@@ -117,6 +117,7 @@ class RuTubeUploader:
 		self.browser.find(By.XPATH, Constant.INPUT_FILE_VIDEO).send_keys(
 			absolute_video_path)
 		self.logger.debug('Attached video {}'.format(self.video_path))
+		time.sleep(Constant.USER_WAITING_TIME)
 
 		# thumb
 		if self.thumbnail_path is not None:
