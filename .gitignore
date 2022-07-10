@@ -2,6 +2,6 @@
 .DS_Store
 /cookies
 /*.pkl
-/rutube_uploader_selenium/__pycache__
+__pycache__/
 /geckodriver.log
 
