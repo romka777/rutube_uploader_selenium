@@ -105,19 +105,16 @@ class RuTubeUploader:
 
 
 	def __upload(self) -> (bool):
-		self.logger.debug('Open {}'.format(Constant.RUTUBE_URL))
-		self.browser.get(Constant.RUTUBE_URL)
-		time.sleep(Constant.USER_WAITING_TIME)
 		self.logger.debug('Open {}'.format(Constant.RUTUBE_UPLOAD_URL))
 		self.browser.get(Constant.RUTUBE_UPLOAD_URL)
-		time.sleep(Constant.USER_WAITING_TIME)
+		time.sleep(Constant.USER_WAITING_TIME*3)
 
 		# video
 		absolute_video_path = str(Path.cwd() / self.video_path)
 		self.browser.find(By.XPATH, Constant.INPUT_FILE_VIDEO).send_keys(
 			absolute_video_path)
 		self.logger.debug('Attached video {}'.format(self.video_path))
-		time.sleep(Constant.USER_WAITING_TIME)
+		time.sleep(Constant.USER_WAITING_TIME*3)
 
 		# thumb
 		if self.thumbnail_path is not None:
@@ -178,8 +175,14 @@ class RuTubeUploader:
 			in_process = submit_button.get_attribute('disabled')
 			self.logger.debug('in_process \"{}\".'.format(in_process))
 
+			reload_button = self.browser.find(By.XPATH, Constant.RELOAD_BUTTON)
+			if reload_button:
+				self.logger.error('Error upload, retry')
+				reload_button.click()
+
+
 			if in_process:
-				time.sleep(Constant.USER_WAITING_TIME)
+				time.sleep(Constant.USER_WAITING_TIME*5)
 			else:
 				break		
 		
