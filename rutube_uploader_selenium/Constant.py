@@ -21,3 +21,4 @@ class Constant:
     ADULT_CHECKBOX = "//input[@name='adult']"
     SUBMIT_BUTTON = "//button"
     SUBMIT_BUTTON_INDEX = 2
+    RELOAD_BUTTON = "//button[@icon='reloadThick']"
