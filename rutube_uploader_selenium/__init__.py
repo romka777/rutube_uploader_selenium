@@ -1,6 +1,8 @@
 from asyncio import constants
 from typing import DefaultDict, Optional
-from selenium_firefox.firefox import Firefox, By, Keys
+from selenium_firefox.firefox import Firefox
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from collections import defaultdict
 from selenium.common.exceptions import ElementClickInterceptedException
 import json
@@ -27,7 +29,7 @@ class RuTubeUploader:
 		self.thumbnail_path = thumbnail_path
 		self.metadata_dict = load_metadata(metadata_json_path)
 		current_working_dir = str(Path.cwd())
-		self.browser = Firefox(current_working_dir, current_working_dir, None, None, False, False, False)
+		self.browser = Firefox(profile_path = current_working_dir, pickle_cookies = True, full_screen = False)
 		self.logger = logging.getLogger(__name__)
 		self.logger.setLevel(logging.DEBUG)
 		self.__validate_inputs()
