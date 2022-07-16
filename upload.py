@@ -5,7 +5,7 @@ from typing import Optional
 
 def main(video_path: str, metadata_path: Optional[str] = None, thumbnail_path: Optional[str] = None):
     uploader = RuTubeUploader(video_path, metadata_path, thumbnail_path)
-    was_video_uploaded = uploader.upload()
+    was_video_uploaded, video_id, playlist_id = uploader.upload()
     assert was_video_uploaded
 
 

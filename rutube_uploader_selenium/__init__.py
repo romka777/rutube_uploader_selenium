@@ -1,6 +1,9 @@
 from asyncio import constants
 from typing import DefaultDict, Optional
-from selenium_firefox.firefox import Firefox, By, Keys
+from selenium_firefox.firefox import Firefox
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+
 from collections import defaultdict
 from selenium.common.exceptions import ElementClickInterceptedException
 import json
@@ -27,7 +30,7 @@ class RuTubeUploader:
 		self.thumbnail_path = thumbnail_path
 		self.metadata_dict = load_metadata(metadata_json_path)
 		current_working_dir = str(Path.cwd())
-		self.browser = Firefox(current_working_dir, current_working_dir, None, None, False, False, False)
+		self.browser = Firefox(profile_path = current_working_dir, pickle_cookies = True, full_screen = False)
 		self.logger = logging.getLogger(__name__)
 		self.logger.setLevel(logging.DEBUG)
 		self.__validate_inputs()
@@ -54,6 +57,12 @@ class RuTubeUploader:
 		if not self.metadata_dict[Constant.DICT_ADULT]:
 			self.logger.warning(
 				"The video adult (18+) flag was not found in a metadata file")
+		if not self.metadata_dict[Constant.DICT_PLAYLIST_TITLE]:
+			self.logger.warning(
+				"The video playlist title was not found in a metadata file")
+		if not self.metadata_dict[Constant.DICT_PLAYLIST_DESCRIPTION]:
+			self.logger.warning(
+				"The video playlist description was not found in a metadata file")
 
 	def upload(self):
 		try:
@@ -61,7 +70,7 @@ class RuTubeUploader:
 			return self.__upload()
 		except Exception as e:
 			print(e)
-			self.__quit()
+			#self.__quit()
 			raise
 
 	def __login(self):
@@ -103,8 +112,78 @@ class RuTubeUploader:
 			self.logger.error('Cant find option: {}'.format(li_item))
 			self.logger.error('Field: {}'.format(field))
 
+	def __uploadToPlaylist(self) -> (bool, str, Optional[str]):
 
-	def __upload(self) -> (bool):
+		self.logger.debug("Playlist mode.")
+		# Playlist
+		playlist_title = self.metadata_dict[Constant.DICT_PLAYLIST_TITLE]
+
+		# Goto playlists and try to find it
+		self.browser.get(Constant.RUTUBE_PLAYLISTS)
+		time.sleep(Constant.USER_WAITING_TIME * 2)
+
+		# Find playlist
+		pl_anchor = self.browser.find(By.XPATH, Constant.PLAYLIST.format(playlist_title))
+		if pl_anchor:
+			pl_link = pl_anchor.get_attribute("href")
+			self.logger.debug("Playlist found. Link: {}".format(pl_link))
+		else:
+			self.logger.debug("Playlist not found. Creating")
+
+			self.browser.get(Constant.RUTUBE_PLAYLIST_CREATE)
+			# Title
+			pl_title_field = self.browser.find(By.XPATH, Constant.PLAYLIST_TITLE)
+			self.__write_in_field(pl_title_field, playlist_title, True)
+			
+			# Description
+			playlist_description = self.metadata_dict[Constant.DICT_PLAYLIST_DESCRIPTION]
+			if playlist_description:
+				pl_description_field = self.browser.find(By.XPATH, Constant.PLAYLIST_DESCRIPTION)
+				self.__write_in_field(pl_description_field, playlist_description, True)
+			
+			time.sleep(Constant.USER_WAITING_TIME)
+			# Save
+			button_submit = self.browser.find(By.XPATH, Constant.PLAYLIST_BUTTON_SUMBIT)
+			button_submit.click()
+			
+			time.sleep(Constant.USER_WAITING_TIME * 3)
+
+			# Find new playlist and click it
+			pl_anchor = self.browser.find(By.XPATH, Constant.PLAYLIST.format(playlist_title))
+			pl_link = pl_anchor.get_attribute("href")
+			self.logger.info("Playlist created. Link: {}".format(pl_link))
+
+		pl_anchor.click()
+		time.sleep(Constant.USER_WAITING_TIME * 2)
+
+		# Click add video button
+		add_video_button = self.browser.find(By.XPATH, Constant.PLAYLIST_ADD_VIDEO_BUTTON)
+		add_video_button.click()
+		time.sleep(Constant.USER_WAITING_TIME)
+
+		# If there no videos, we need click one more button
+		button_submit = self.browser.find(By.XPATH, Constant.PLAYLIST_BUTTON_SUMBIT)
+		button_submit.click()
+
+
+
+		# Add new video
+		video_checkbox = self.browser.find(By.XPATH, Constant.PLAYLIST_VIDEO_CHECKBOX)
+		video_checkbox.click()
+		time.sleep(Constant.USER_WAITING_TIME)
+
+		add_video_submit_button = self.browser.find_all(By.XPATH, Constant.SUBMIT_BUTTON)[7]
+		add_video_submit_button.click()
+
+		self.logger.debug("Video added to playlist")
+
+		time.sleep(Constant.USER_WAITING_TIME * 2)
+
+		self.__quit()
+		return True, link, pl_link
+
+
+	def __upload(self) -> (bool, str, Optional[str]):
 		self.logger.debug('Open {}'.format(Constant.RUTUBE_UPLOAD_URL))
 		self.browser.get(Constant.RUTUBE_UPLOAD_URL)
 		time.sleep(Constant.USER_WAITING_TIME*3)
@@ -175,25 +254,28 @@ class RuTubeUploader:
 			in_process = submit_button.get_attribute('disabled')
 			self.logger.debug('in_process \"{}\".'.format(in_process))
 
-			reload_button = self.browser.find(By.XPATH, Constant.RELOAD_BUTTON)
-			if reload_button:
-				self.logger.error('Error upload, retry')
-				reload_button.click()
-
-
 			if in_process:
-				time.sleep(Constant.USER_WAITING_TIME*5)
+				reload_button = self.browser.find(By.XPATH, Constant.RELOAD_BUTTON)
+				if reload_button:
+					self.logger.error('Error upload, retry')
+					reload_button.click()
+
+				time.sleep(Constant.USER_WAITING_TIME*2)
 			else:
 				break		
 		
 		# Save and quit
 		done_button = self.browser.find_all(By.XPATH, Constant.SUBMIT_BUTTON)[Constant.SUBMIT_BUTTON_INDEX]
 		done_button.click()
+		time.sleep(Constant.USER_WAITING_TIME * 2)
 
-		self.logger.debug("Published the video successfully")
-		time.sleep(Constant.USER_WAITING_TIME)
+		# Find link
+		anchor = self.browser.find(By.XPATH, Constant.VIDEO.format(self.metadata_dict[Constant.DICT_TITLE]))
+		link = anchor.get_attribute("href")
+		self.logger.info("Published the video successfully. Link: {}".format(link))
+
 		self.__quit()
-		return True
+		return True, link
 
 	def __quit(self):
 		self.browser.driver.quit()
