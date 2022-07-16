@@ -39,6 +39,8 @@ class RuTubeUploader:
 			self.is_mac = True
 			self.logger.debug('Mac detected')
 
+		self.logger.debug("Use profile path: {}".format(self.browser.source_profile_path))
+
 	def __validate_inputs(self):
 		if not self.metadata_dict[Constant.DICT_TITLE]:
 			self.logger.warning(
@@ -74,6 +76,7 @@ class RuTubeUploader:
 		if self.browser.has_cookies_for_current_website():
 			self.logger.debug('Load cookies')
 			self.browser.load_cookies()
+			self.logger.debug("Loaded cookies from {}".format(self.browser.cookies_folder_path))
 			time.sleep(Constant.USER_WAITING_TIME)
 			self.browser.refresh()
 		else:
@@ -82,6 +85,7 @@ class RuTubeUploader:
 			self.browser.get(Constant.RUTUBE_URL)
 			time.sleep(Constant.USER_WAITING_TIME)
 			self.browser.save_cookies()
+			self.logger.debug("Saved cookies to {}".format(self.browser.cookies_folder_path))
 
 	def __write_in_field(self, field, string, select_all=False):
 		field.click()
